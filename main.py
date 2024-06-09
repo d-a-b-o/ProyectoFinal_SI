@@ -20,7 +20,7 @@ pd.set_option('display.width', 1000)
 
 # Mostrar las primeras 5 filas del DataFrame
 print("Primera vista del DataFrame original:")
-df_ACC_TRA.head(100).to_string(index=False)
+print(df_ACC_TRA.head(100).to_string(index=False))
 
 # Definir las columnas a eliminar basándonos en los nombres exactos impresos
 DROP_COLUMNS = ['FECHA_CORTE', 'FECHA', 'KILOMETRO', 'FALLECIDOS', 'HERIDOS']
@@ -30,7 +30,7 @@ df_ACC_TRA.drop(columns=DROP_COLUMNS, inplace=True)
 
 # Mostrar las primeras 5 filas del DataFrame después de eliminar las columnas
 print("\nVista del DataFrame después de eliminar columnas:")
-df_ACC_TRA.head(100).to_string(index=False)
+print(df_ACC_TRA.head(100).to_string(index=False))
 
 # Aplicar One-Hot Encoding al campo 'MODALIDAD'
 df_one_hot_modalidad = pd.get_dummies(df_ACC_TRA, columns=['MODALIDAD'])
@@ -42,4 +42,4 @@ for column in df_one_hot_modalidad.columns:
 
 # Mostrar las primeras 5 filas para verificar el resultado
 print("\nVista del DataFrame después de One-Hot Encoding:")
-df_one_hot_modalidad.head(100).to_string(index=False)
+print(df_one_hot_modalidad.head(100).to_string(index=False))
