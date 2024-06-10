@@ -20,4 +20,4 @@ jobs:
         pip install pandas numpy scikit-learn
 
     - name: Run script
-      run: python modalidad.py
+      run: python main.py
