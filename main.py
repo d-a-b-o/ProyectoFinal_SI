@@ -40,13 +40,8 @@ columnas_ACC_TRA = list(df_ACC_TRA.select_dtypes(include=['object']).columns)
 def procesar_datos():
     global df_ACC_TRA, columnaCodigoVia
 
-    for column in columnas_ACC_TRA:
-        # Almacenar en una lista los registros del codigo de via sin repetir los datos
-        if column == "CODIGO_VIA":
-            columnaCodigoVia = list(df_ACC_TRA[column].value_counts().index)
-            print(len(columnaCodigoVia))
-            break
-
+    # Almacenar en una lista los registros del codigo de via sin repetir los datos
+    columnaCodigoVia = list(df_ACC_TRA['CODIGO_VIA'].value_counts().index)
 
     # Eliminar registros que sean duplicados
     df_ACC_TRA = df_ACC_TRA.drop_duplicates() if df_ACC_TRA.duplicated().any() else df_ACC_TRA
@@ -56,17 +51,18 @@ def procesar_datos():
     # Convertir la columna de codigo_via que estan en cadena en un label encoded data
     df_ACC_TRA["CODIGO_VIA"] = df_ACC_TRA["CODIGO_VIA"].map(diccionario_codigo_via)
 
-    # Aplicar One-Hot Encoding al campo 'MODALIDAD'
-    df_one_hot_modalidad = pd.get_dummies(df_ACC_TRA, columns=['MODALIDAD'])
+    # Existencias de departamentos en minusculas, por lo que forzamos las mayusculas
+    df_ACC_TRA['DEPARTAMENTO'] = df_ACC_TRA['DEPARTAMENTO'].str.upper()
+    
+    # Aplicar One-Hot Encoding a los campos 'MODALIDAD' y 'DEPARTAMENTO'
+    df_ACC_TRA = pd.get_dummies(df_ACC_TRA, columns=['MODALIDAD', 'DEPARTAMENTO'])
 
     # Convertir solo las columnas de One-Hot Encoding a valores enteros (0 y 1)
-    for column in df_one_hot_modalidad.columns:
-        if 'MODALIDAD_' in column:
-            df_ACC_TRA[column] = df_one_hot_modalidad[column].astype(int)
-
-    df_ACC_TRA = df_ACC_TRA.drop(columns=['MODALIDAD'])
+    for column in df_ACC_TRA.columns:
+        if 'MODALIDAD_' in column or 'DEPARTAMENTO_' in column:
+            df_ACC_TRA[column] = df_ACC_TRA[column].astype(int)
 
 procesar_datos()
-# Mostrar las primeras 5 filas para verificar el resultado
+# Mostrar las primeras 100 filas para verificar el resultado
 print("\nVista del DataFrame después de One-Hot Encoding:")
 print(df_ACC_TRA.head(100).to_string(index=False))
