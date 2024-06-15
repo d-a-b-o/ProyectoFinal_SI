@@ -7,6 +7,7 @@ from sklearn import preprocessing
 from sklearn.base import TransformerMixin
 from sklearn.preprocessing import RobustScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
+from datetime import datetime
 
 df_ACC_TRA = pd.read_csv('Data/Accidentes_de_transito_en_carreteras-2020-2021-Sutran.csv', encoding='utf8', delimiter=';')
 
@@ -37,8 +38,22 @@ print(df_ACC_TRA.head(100).to_string(index=False))
 # Listado donde estan almacenados los campos relacionado al dataset de accidentes de transito
 columnas_ACC_TRA = list(df_ACC_TRA.select_dtypes(include=['object']).columns)
 
+def convertir_horas_a_minutos(tiempo):
+    if tiempo == 'N.I.':
+      return -1
+
+    try:
+        horas, minutos = map(int, tiempo.split(':'))
+        total_minutos = horas * 60 + minutos
+        return total_minutos
+    except ValueError:
+        return -1
+
 def procesar_datos():
     global df_ACC_TRA, columnaCodigoVia
+
+    #Crear nueva columna de hora en minutos 
+    df_ACC_TRA["HORA_MINUTOS"] = df_ACC_TRA["HORA"].apply(convertir_horas_a_minutos)
 
     # Almacenar en una lista los registros del codigo de via sin repetir los datos
     columnaCodigoVia = list(df_ACC_TRA['CODIGO_VIA'].value_counts().index)
