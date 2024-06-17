@@ -27,7 +27,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 1000)
 
 # Definir las columnas a eliminar basándonos en los nombres exactos impresos
-DROP_COLUMNS = ['FECHA_CORTE', 'FECHA', 'KILOMETRO', 'FALLECIDOS', 'HERIDOS']
+DROP_COLUMNS = ['FECHA_CORTE', 'FECHA']
 
 # Eliminar las columnas especificadas
 df_ACC_TRA.drop(columns=DROP_COLUMNS, inplace=True)
@@ -91,11 +91,11 @@ def procesar_datos():
     df_ACC_TRA['DEPARTAMENTO'] = label_encoder.fit_transform(df_ACC_TRA['DEPARTAMENTO'])
 
     # Aplicar One-Hot Encoding a los campos 'MODALIDAD'
-    df_ACC_TRA = pd.get_dummies(df_ACC_TRA, columns=['MODALIDAD'])
+    df_ACC_TRA = pd.get_dummies(df_ACC_TRA, columns=['MODALIDAD'], prefix=['TIPO'])
 
     # Convertir solo las columnas de One-Hot Encoding a valores enteros (0 y 1)
     for column in df_ACC_TRA.columns:
-        if 'MODALIDAD_' in column:
+        if 'TIPO_' in column:
             df_ACC_TRA[column] = df_ACC_TRA[column].astype(int)
 
 procesar_datos()
