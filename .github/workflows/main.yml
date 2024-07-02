@@ -21,7 +21,7 @@ jobs:
         pip install pandas scikit-learn matplotlib
 
     - name: List files in data directory
-      run: ls -la data  # Esto lista los archivos en el directorio data para verificar
+      run: ls -la Data  # Esto lista los archivos en el directorio data para verificar
 
     - name: Run script
       run: python modalidad.py
