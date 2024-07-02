@@ -106,6 +106,10 @@ procesar_datos()
 print("\nVista del DataFrame después de todas las transformaciones:")
 print(df_ACC_TRA.head(100).to_string(index=False))
 
+# Normalización de los datos
+scaler = StandardScaler()
+df_scaled = scaler.fit_transform(df_ACC_TRA.select_dtypes(include=[np.number]))
+
 # Determinar el número óptimo de clusters utilizando el método del codo
 sse = []
 for k in range(1, 11):
