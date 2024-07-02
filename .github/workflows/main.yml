@@ -1,9 +1,9 @@
-name: Run Python Script
+name: Python application
 
-on: [push, pull_request]
+on: [push]
 
 jobs:
-  run-script:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -11,13 +11,23 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: 3.8
 
     - name: Install dependencies
       run: |
-        pip install pandas numpy scikit-learn
+        python -m pip install --upgrade pip
+        pip install pandas scikit-learn matplotlib
+
+    - name: List files in data directory
+      run: ls -la data  # Esto lista los archivos en el directorio data para verificar
 
     - name: Run script
-      run: python main.py
+      run: python modalidad.py
+
+    - name: Upload image artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: metodo-del-codo
+        path: metodo_del_codo.png
