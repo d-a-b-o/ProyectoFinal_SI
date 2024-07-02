@@ -24,7 +24,7 @@ jobs:
       run: ls -la Data  # Esto lista los archivos en el directorio data para verificar
 
     - name: Run script
-      run: python modalidad.py
+      run: python main.py
 
     - name: Upload image artifact
       uses: actions/upload-artifact@v3
