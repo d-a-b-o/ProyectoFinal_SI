@@ -5,10 +5,12 @@ import io
 from sklearn.pipeline import Pipeline
 from sklearn import preprocessing
 from sklearn.base import TransformerMixin
-from sklearn.preprocessing import RobustScaler, OneHotEncoder
+from sklearn.preprocessing import RobustScaler, OneHotEncoder, StandardScaler
 from sklearn.compose import ColumnTransformer
 from datetime import datetime
 from sklearn.preprocessing import LabelEncoder
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
 
 df_ACC_TRA = pd.read_csv('Data/Accidentes_de_transito_en_carreteras-2020-2021-Sutran.csv', encoding='utf-8-sig', delimiter=';')
 
@@ -103,3 +105,18 @@ procesar_datos()
 # Mostrar las primeras 100 filas para verificar el resultado final
 print("\nVista del DataFrame después de todas las transformaciones:")
 print(df_ACC_TRA.head(100).to_string(index=False))
+
+# Determinar el número óptimo de clusters utilizando el método del codo
+sse = []
+for k in range(1, 11):
+    kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)  # Aquí se agrega el valor explícito de n_init
+    kmeans.fit(df_scaled)
+    sse.append(kmeans.inertia_)
+
+plt.figure(figsize=(10, 5))
+plt.plot(range(1, 11), sse, marker='o')
+plt.xlabel('Número de clusters')
+plt.ylabel('SSE (Inercia)')
+plt.title('Método del codo')
+plt.savefig('metodo_del_codo.png')  # Guardar la imagen
+plt.show()
