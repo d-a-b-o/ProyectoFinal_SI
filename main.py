@@ -11,6 +11,7 @@ from datetime import datetime
 from sklearn.preprocessing import LabelEncoder
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
+from scipy.stats import mode
 
 df_ACC_TRA = pd.read_csv('Data/Accidentes_de_transito_en_carreteras-2020-2021-Sutran.csv', encoding='utf-8-sig', delimiter=';')
 
@@ -37,9 +38,23 @@ df_ACC_TRA.drop(columns=DROP_COLUMNS, inplace=True)
 # Listado donde están almacenados los campos relacionados al dataset de accidentes de tránsito
 columnas_ACC_TRA = list(df_ACC_TRA.select_dtypes(include=['object']).columns)
 
+# Contar las etiquetas después de limpiar los NaN
+num_filas = df_ACC_TRA.shape[0]
+# Mostrar el conteo de filas
+print("Conteo de filas antes de eliminar los N.I.:")
+print(num_filas)
+
+# Eliminar filas donde alguna de estas columnas contiene "N.I."
+columns_to_check = ['HORA', 'DEPARTAMENTO', 'CODIGO_VIA', 'KILOMETRO', 'MODALIDAD', 'FALLECIDOS', 'HERIDOS']
+df_ACC_TRA = df_ACC_TRA[~df_ACC_TRA[columns_to_check].isin(['N.I.']).any(axis=1)]
+
+# Contar las etiquetas después de limpiar los NaN
+num_filas = df_ACC_TRA.shape[0]
+# Mostrar el conteo de filas
+print("Conteo de filas después de eliminar los N.I.:")
+print(num_filas)
+
 def convertir_horas_a_minutos(tiempo):
-    if tiempo == 'N.I.':
-        return -1
     try:
         horas, minutos = map(int, tiempo.split(':'))
         total_minutos = horas * 60 + minutos
@@ -55,9 +70,6 @@ def procesar_datos():
     df_ACC_TRA["HORA_MINUTOS"] = df_ACC_TRA["HORA"].apply(convertir_horas_a_minutos)
 
     # Realizar One-Hot encoding para la hora en minutos, con esto tendremos separados la hora en diferentes categorias
-    df_ACC_TRA["HORA_N.I."] = pd.cut(x = df_ACC_TRA["HORA_MINUTOS"],
-                                                    bins = [-2, 0, 360, 720, 1140, 1440],
-                                                    labels = [1, 0, 0, 0, 0],ordered=False)
     df_ACC_TRA["HORA_TEMPRANO"] = pd.cut(x = df_ACC_TRA["HORA_MINUTOS"],
                                                     bins = [-2, 0, 360, 720, 1140, 1440],
                                                     labels = [0, 0, 1, 0, 0],ordered=False)
@@ -122,5 +134,65 @@ plt.plot(range(1, 11), sse, marker='o')
 plt.xlabel('Número de clusters')
 plt.ylabel('SSE (Inercia)')
 plt.title('Método del codo')
-plt.savefig('metodo_del_codo.png')  # Guardar la imagen
+plt.savefig('metodo_del_codo.png')
 plt.show()
+
+# Aplicacion de K-Means con el número de clusters seleccionado
+clusters = 5
+kmeans = KMeans(n_clusters = clusters, n_init = 10)
+kmeans.fit(df_scaled)
+
+# Añadir los clusters al DataFrame original
+df_ACC_TRA['Cluster'] = kmeans.labels_
+
+print(df_ACC_TRA.head(100).to_string(index=False))
+
+# Asegurar que las columnas fallecidos y heridos sean numéricas
+df_ACC_TRA['FALLECIDOS'] = pd.to_numeric(df_ACC_TRA['FALLECIDOS'])
+df_ACC_TRA['HERIDOS'] = pd.to_numeric(df_ACC_TRA['HERIDOS'])
+
+
+# Calcular estadísticas descriptivas por cluster
+cluster_count = df_ACC_TRA.groupby('Cluster').size()
+cluster_analysis = df_ACC_TRA.groupby('Cluster').agg({
+    'DEPARTAMENTO': lambda x: x.mode().iloc[0],
+    'KILOMETRO': lambda x: x.mode().iloc[0],
+    'CODIGO_VIA': lambda x: x.mode().iloc[0],
+    'FALLECIDOS': 'mean',
+    'HERIDOS': 'mean',
+    'HORA_TEMPRANO': lambda x: x.mode().iloc[0],
+    'HORA_TARDE': lambda x: x.mode().iloc[0],
+    'HORA_NOCHE': lambda x: x.mode().iloc[0],
+    'HORA_MADRUGADA': lambda x: x.mode().iloc[0],
+    'TIPO_ATROPELLO': lambda x: x.mode().iloc[0],
+    'TIPO_CHOQUE': lambda x: x.mode().iloc[0],
+    'TIPO_DESPISTE': lambda x: x.mode().iloc[0],
+    'TIPO_ESPECIAL': lambda x: x.mode().iloc[0],
+    'TIPO_VOLCADURA': lambda x: x.mode().iloc[0]
+})
+
+print("\nAnálisis de los clusters:")
+print(cluster_count)
+print(cluster_analysis)
+
+# Realizar el groupby y calcular la media por cluster
+cluster_analysis = df_ACC_TRA.groupby('Cluster')[['FALLECIDOS', 'HERIDOS']].mean()
+
+# Visualización y análisis de resultados
+plt.figure(figsize=(10, 6))
+cluster_analysis.plot(kind='bar', stacked=True, colormap='viridis')
+plt.xlabel('Cluster')
+plt.ylabel('Promedio')
+plt.title('Comparación de Fallecidos y Heridos por Cluster')
+plt.xticks(rotation=0)
+plt.tight_layout()
+plt.show()
+
+# Mostrar las características comunes de los clusters con mayor número de heridos y fallecidos
+cluster_max_heridos = cluster_analysis.nlargest(1, 'HERIDOS')
+cluster_max_fallecidos = cluster_analysis.nlargest(1, 'FALLECIDOS')
+
+print("\nCluster con Mayor Número de Heridos:")
+print(cluster_max_heridos)
+print("\nCluster con Mayor Número de Fallecidos:")
+print(cluster_max_fallecidos)
