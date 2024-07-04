@@ -12,12 +12,24 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 from scipy.stats import mode
-
+import seaborn as sns
+import geopandas as gpd
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
 from sklearn.metrics import silhouette_score, silhouette_samples
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D  # Importar Axes3D para gráficos 3D
 
-df_ACC_TRA = pd.read_csv('Data/Accidentes_de_transito_en_carreteras-2020-2021-Sutran.csv', encoding='utf-8-sig', delimiter=';')
+# Usar la ruta correcta para leer el archivo CSV
+csv_file_path = 'Accidentes_de_transito_en_carreteras-2020-2021-Sutran.csv.csv'
 
-columnaCodigoVia = []
+df_ACC_TRA = pd.read_csv(csv_file_path, encoding='utf-8-sig', delimiter=';')
+print("Datos cargados exitosamente")
+
+columnaCodigoVía = []
 
 # Configuración de pandas para mostrar todas las columnas y ajustar el ancho
 pd.set_option('display.max_columns', None)
@@ -26,10 +38,6 @@ pd.set_option('display.width', 1000)
 # Mostrar las primeras 5 filas del DataFrame
 print("Primera vista del DataFrame original:")
 print(df_ACC_TRA.head(100).to_string(index=False))
-
-# Configuración de pandas para mostrar todas las columnas y ajustar el ancho
-pd.set_option('display.max_columns', None)
-pd.set_option('display.width', 1000)
 
 # Definir las columnas a eliminar basándonos en los nombres exactos impresos
 DROP_COLUMNS = ['FECHA_CORTE', 'FECHA']
@@ -47,7 +55,7 @@ print("Conteo de filas antes de eliminar los N.I.:")
 print(num_filas)
 
 # Eliminar filas donde alguna de estas columnas contiene "N.I."
-columns_to_check = ['HORA', 'DEPARTAMENTO', 'CODIGO_VIA', 'KILOMETRO', 'MODALIDAD', 'FALLECIDOS', 'HERIDOS']
+columns_to_check = ['HORA', 'DEPARTAMENTO', 'CODIGO_VÍA', 'KILOMETRO', 'MODALIDAD', 'FALLECIDOS', 'HERIDOS']
 df_ACC_TRA = df_ACC_TRA[~df_ACC_TRA[columns_to_check].isin(['N.I.']).any(axis=1)]
 
 # Contar las etiquetas después de limpiar los NaN
@@ -65,8 +73,7 @@ def convertir_horas_a_minutos(tiempo):
         return -1
 
 def procesar_datos():
-    global df_ACC_TRA, columnaCodigoVia
-    
+    global df_ACC_TRA, columnaCodigoVía
 
     # Crear nueva columna de hora en minutos 
     df_ACC_TRA["HORA_MINUTOS"] = df_ACC_TRA["HORA"].apply(convertir_horas_a_minutos)
@@ -74,10 +81,10 @@ def procesar_datos():
     # Realizar One-Hot encoding para la hora en minutos, con esto tendremos separados la hora en diferentes categorias
     df_ACC_TRA["HORA_TEMPRANO"] = pd.cut(x = df_ACC_TRA["HORA_MINUTOS"],
                                                     bins = [-2, 0, 360, 720, 1140, 1440],
-                                                    labels = [0, 0, 1, 0, 0],ordered=False)
+                                                    labels = [0, 0, 1, 0, 0], ordered=False)
     df_ACC_TRA["HORA_TARDE"] = pd.cut(x = df_ACC_TRA["HORA_MINUTOS"],
                                                     bins = [-2, 0, 360, 720, 1140, 1440],
-                                                    labels = [0, 0, 0, 1, 0],ordered=False)
+                                                    labels = [0, 0, 0, 1, 0], ordered=False)
     df_ACC_TRA["HORA_NOCHE"] = pd.cut(x = df_ACC_TRA["HORA_MINUTOS"],
                                                     bins = [-2, 0, 360, 720, 1140, 1440],
                                                     labels = [0, 0, 0, 0, 1], ordered=False)
@@ -88,16 +95,16 @@ def procesar_datos():
     df_ACC_TRA.drop(columns = ['HORA','HORA_MINUTOS'], inplace=True)
 
     # Almacenar en una lista los registros del código de vía sin repetir los datos
-    columnaCodigoVia = list(df_ACC_TRA['CODIGO_VIA'].value_counts().index)
+    columnaCodigoVía = list(df_ACC_TRA['CODIGO_VÍA'].value_counts().index)
 
     # Eliminar registros que sean duplicados
     df_ACC_TRA = df_ACC_TRA.drop_duplicates() if df_ACC_TRA.duplicated().any() else df_ACC_TRA
 
     # Almacenar en un diccionario los códigos de vía, en el cual serán enumerados del 1 en adelante
-    diccionario_codigo_via = {element: index + 1 for index, element in enumerate(columnaCodigoVia)}
+    diccionario_codigo_via = {element: index + 1 for index, element in enumerate(columnaCodigoVía)}
 
     # Convertir la columna de CODIGO_VÍA que está en cadena en un label encoded data
-    df_ACC_TRA["CODIGO_VIA"] = df_ACC_TRA["CODIGO_VIA"].map(diccionario_codigo_via)
+    df_ACC_TRA["CODIGO_VÍA"] = df_ACC_TRA["CODIGO_VÍA"].map(diccionario_codigo_via)
 
     # Existencias de departamentos en minúsculas, por lo que forzamos las mayúsculas
     df_ACC_TRA['DEPARTAMENTO'] = df_ACC_TRA['DEPARTAMENTO'].str.upper()
@@ -127,7 +134,7 @@ df_scaled = scaler.fit_transform(df_ACC_TRA.select_dtypes(include=[np.number]))
 # Determinar el número óptimo de clusters utilizando el método del codo
 sse = []
 for k in range(1, 11):
-    kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)  # Aquí se agrega el valor explícito de n_init
+    kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
     kmeans.fit(df_scaled)
     sse.append(kmeans.inertia_)
 
@@ -153,13 +160,12 @@ print(df_ACC_TRA.head(100).to_string(index=False))
 df_ACC_TRA['FALLECIDOS'] = pd.to_numeric(df_ACC_TRA['FALLECIDOS'])
 df_ACC_TRA['HERIDOS'] = pd.to_numeric(df_ACC_TRA['HERIDOS'])
 
-
 # Calcular estadísticas descriptivas por cluster
 cluster_count = df_ACC_TRA.groupby('Cluster').size()
 cluster_analysis = df_ACC_TRA.groupby('Cluster').agg({
     'DEPARTAMENTO': lambda x: x.mode().iloc[0],
     'KILOMETRO': lambda x: x.mode().iloc[0],
-    'CODIGO_VIA': lambda x: x.mode().iloc[0],
+    'CODIGO_VÍA': lambda x: x.mode().iloc[0],
     'FALLECIDOS': 'mean',
     'HERIDOS': 'mean',
     'HORA_TEMPRANO': lambda x: x.mode().iloc[0],
@@ -201,13 +207,11 @@ print(cluster_max_fallecidos)
 
 labels = kmeans.fit_predict(df_scaled)
 
-
 # Coeficiente de silueta promedio
 silhouette_avg = silhouette_score(df_scaled, labels)
 print(f'El índice de Silhouette promedio para n_clusters={clusters} es: {silhouette_avg}')
 
 sample_silhouette_vals = silhouette_samples(df_scaled, labels)
-
 
 # Gráfico de la silueta
 plt.figure()
@@ -225,7 +229,6 @@ plt.ylabel('Clúster')
 plt.title('Análisis de Silueta')
 plt.savefig('analisis_de_silueta_final.png')
 plt.show()
-
 
 silhouette_scores = []
 
@@ -247,4 +250,89 @@ plt.title("Índice de Silhouette para diferentes valores de n_clusters")
 plt.xlabel("Número de clusters (n_clusters)")
 plt.ylabel("Índice de Silhouette promedio")
 plt.grid(True)
+plt.show()
+# Frecuencia de accidentes por departamento
+frecuencia_departamento = df_ACC_TRA['DEPARTAMENTO'].value_counts()
+print("\nFrecuencia de accidentes por departamento:")
+print(frecuencia_departamento)
+
+# Visualización de la frecuencia de accidentes por departamento
+plt.figure(figsize=(12, 8))
+frecuencia_departamento.plot(kind='bar', color='skyblue')
+plt.title('Frecuencia de Accidentes por Departamento')
+plt.xlabel('Departamento')
+plt.ylabel('Número de Accidentes')
+plt.xticks(rotation=45, ha='right')
+plt.tight_layout()
+plt.show()
+# Convertir las columnas categóricas a numéricas
+df_ACC_TRA['HORA_TEMPRANO'] = df_ACC_TRA['HORA_TEMPRANO'].astype(int)
+df_ACC_TRA['HORA_TARDE'] = df_ACC_TRA['HORA_TARDE'].astype(int)
+df_ACC_TRA['HORA_NOCHE'] = df_ACC_TRA['HORA_NOCHE'].astype(int)
+df_ACC_TRA['HORA_MADRUGADA'] = df_ACC_TRA['HORA_MADRUGADA'].astype(int)
+# Influencia de la hora del accidente
+hora_accidente = df_ACC_TRA[['HORA_TEMPRANO', 'HORA_TARDE', 'HORA_NOCHE', 'HORA_MADRUGADA']].sum()
+print("\nInfluencia de la hora del accidente:")
+print(hora_accidente)
+
+# Visualización de la influencia de la hora del accidente
+plt.figure(figsize=(8, 6))
+hora_accidente.plot(kind='bar', color='lightgreen')
+plt.title('Influencia de la Hora del Accidente')
+plt.xlabel('Hora del Día')
+plt.ylabel('Número de Accidentes')
+plt.xticks(rotation=0)
+plt.tight_layout()
+plt.show()
+
+# Influencia de la modalidad del accidente
+modalidad_accidente = df_ACC_TRA.filter(like='TIPO_').sum()
+print("\nInfluencia de la modalidad del accidente:")
+print(modalidad_accidente)
+
+# Visualización de la influencia de la modalidad del accidente
+plt.figure(figsize=(10, 6))
+modalidad_accidente.plot(kind='bar', color='salmon')
+plt.title('Influencia de la Modalidad del Accidente')
+plt.xlabel('Modalidad')
+plt.ylabel('Número de Accidentes')
+plt.xticks(rotation=45, ha='right')
+plt.tight_layout()
+plt.show()
+
+# Características comunes de los accidentes con mayor número de heridos y fallecidos
+cluster_max_heridos = df_ACC_TRA.loc[df_ACC_TRA['Cluster'] == cluster_analysis['HERIDOS'].idxmax()]
+cluster_max_fallecidos = df_ACC_TRA.loc[df_ACC_TRA['Cluster'] == cluster_analysis['FALLECIDOS'].idxmax()]
+
+print("\nCaracterísticas comunes del cluster con mayor número de heridos:")
+print(cluster_max_heridos.describe(include='all'))
+
+print("\nCaracterísticas comunes del cluster con mayor número de fallecidos:")
+print(cluster_max_fallecidos.describe(include='all'))
+
+# Para analizar la distribución geográfica, se podría usar geopandas para crear mapas si se tiene la información geográfica detallada (coordenadas)
+# En este caso, solo haremos un análisis de la distribución por departamentos (sin mapa)
+
+
+# Definir el colormap para los clusters
+colormap = np.array(['red', 'green', 'blue', 'yellow', 'black', 'pink'])
+
+# Crear una figura 3D
+fig = plt.figure(figsize=(10, 8))
+ax = fig.add_subplot(111, projection='3d')
+
+# Graficar los datos en 3D
+scatter = ax.scatter(df_ACC_TRA['DEPARTAMENTO'], df_ACC_TRA['FALLECIDOS'], df_ACC_TRA['HERIDOS'], c=colormap[kmeans.labels_])
+
+# Añadir etiquetas y título
+ax.set_xlabel('Departamento')
+ax.set_ylabel('Fallecidos')
+ax.set_zlabel('Heridos')
+ax.set_title('Agrupación K-means en 3D')
+
+# Añadir la leyenda del colormap
+legend = ax.legend(*scatter.legend_elements(), title='Clusters')
+ax.add_artist(legend)
+
+# Mostrar el gráfico
 plt.show()
