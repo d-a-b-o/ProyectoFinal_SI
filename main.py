@@ -13,6 +13,8 @@ from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 from scipy.stats import mode
 
+from sklearn.metrics import silhouette_score, silhouette_samples
+
 df_ACC_TRA = pd.read_csv('Data/Accidentes_de_transito_en_carreteras-2020-2021-Sutran.csv', encoding='utf-8-sig', delimiter=';')
 
 columnaCodigoVia = []
@@ -196,3 +198,53 @@ print("\nCluster con Mayor Número de Heridos:")
 print(cluster_max_heridos)
 print("\nCluster con Mayor Número de Fallecidos:")
 print(cluster_max_fallecidos)
+
+labels = kmeans.fit_predict(df_scaled)
+
+
+# Coeficiente de silueta promedio
+silhouette_avg = silhouette_score(df_scaled, labels)
+print(f'El índice de Silhouette promedio para n_clusters={clusters} es: {silhouette_avg}')
+
+sample_silhouette_vals = silhouette_samples(df_scaled, labels)
+
+
+# Gráfico de la silueta
+plt.figure()
+y_lower, y_upper = 0, 0
+for i in range(clusters):
+    cluster_silhouette_vals = sample_silhouette_vals[labels == i]
+    cluster_silhouette_vals.sort()
+    y_upper += len(cluster_silhouette_vals)
+    plt.barh(range(y_lower, y_upper), cluster_silhouette_vals, edgecolor='none', height=1)
+    y_lower += len(cluster_silhouette_vals)
+
+plt.axvline(silhouette_avg, color="red", linestyle="--")
+plt.xlabel('Coeficiente de Silueta')
+plt.ylabel('Clúster')
+plt.title('Análisis de Silueta')
+plt.savefig('analisis_de_silueta_final.png')
+plt.show()
+
+
+silhouette_scores = []
+
+# Definir el rango de valores de n_clusters que queremos probar
+range_n_clusters = range(2, 11)
+
+# Calcular el índice de Silhouette para cada valor de n_clusters
+for n_clusters in range_n_clusters:
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    labels = kmeans.fit_predict(df_scaled)
+    silhouette_avg = silhouette_score(df_scaled, labels)
+    silhouette_scores.append(silhouette_avg)
+    print(f"Para n_clusters = {n_clusters}, el índice de Silhouette promedio es: {silhouette_avg}")
+
+# Visualizar los índices de Silhouette para diferentes valores de n_clusters
+plt.figure(figsize=(10, 6))
+plt.plot(range_n_clusters, silhouette_scores, marker='o')
+plt.title("Índice de Silhouette para diferentes valores de n_clusters")
+plt.xlabel("Número de clusters (n_clusters)")
+plt.ylabel("Índice de Silhouette promedio")
+plt.grid(True)
+plt.show()
